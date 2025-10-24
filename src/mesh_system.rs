@@ -1,5 +1,7 @@
 use bevy::render::render_resource::PrimitiveTopology;
-use bevy::{prelude::*, render::mesh::Indices};
+use bevy::asset::RenderAssetUsages;
+use bevy::prelude::*;
+use bevy::mesh::Indices;
 
 use crate::{
     font_loader::TextMeshFont, mesh_cache::MeshCache, mesh_data_generator::generate_text_mesh,
@@ -16,9 +18,9 @@ pub(crate) fn text_mesh(
             Entity,
             &Transform,
             &GlobalTransform,
-            Option<&Handle<StandardMaterial>>,
+            Option<&MeshMaterial3d<StandardMaterial>>,
             &TextMesh,
-            Option<&Handle<Mesh>>,
+            Option<&Mesh3d>,
             &mut TextMeshState,
         ),
         Or<(Changed<TextMesh>, Changed<TextMeshState>)>,
@@ -40,7 +42,7 @@ pub(crate) fn text_mesh(
     // TODO: performance - split to mesh-update and mesh-create systems?
 
     for text_mesh in text_meshes.iter_mut() {
-        let (entity, transform, global_transform, material, text_mesh, mesh, mut state) = text_mesh;
+        let (entity, _transform, _global_transform, material, text_mesh, mesh, mut state) = text_mesh;
 
         let font = match fonts.get_mut(&text_mesh.style.font) {
             Some(font) => font,
@@ -49,7 +51,7 @@ pub(crate) fn text_mesh(
                     state.warning_trigger_count += 1;
 
                     if state.warning_trigger_count > 5 {
-                        warn!("font mesh not found - did you load the font? (`asset_server.load('font.ttf#mesh'))`");
+                        println!("Warning: font mesh not found - did you load the font? (`asset_server.load('font.ttf#mesh')`))");
                         state.warning_shown = true;
                     }
                 }
@@ -60,36 +62,33 @@ pub(crate) fn text_mesh(
         let ttf2_mesh = generate_text_mesh(&text_mesh, &mut font.ttf_font, Some(&mut cache));
 
         match mesh {
-            Some(mesh) => {
-                let mesh = meshes.get_mut(mesh).unwrap();
+            Some(mesh_handle) => {
+                let mesh = meshes.get_mut(&mesh_handle.0).unwrap();
                 apply_mesh(ttf2_mesh, mesh);
 
                 // TODO: handle color updates
             }
             None => {
-                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
 
                 apply_mesh(ttf2_mesh, &mut mesh);
 
-                commands.entity(entity).insert(PbrBundle {
-                    mesh: meshes.add(mesh),
-                    material: material.map(|m| m.clone()).unwrap_or_else(|| {
+                commands.entity(entity).insert((
+                    MeshMaterial3d(material.map(|m| m.0.clone()).unwrap_or_else(|| {
                         materials.add(StandardMaterial {
                             base_color: text_mesh.style.color,
                             ..Default::default()
                         })
-                    }),
-                    transform: transform.clone(),
-                    global_transform: global_transform.clone(),
-                    ..Default::default()
-                });
+                    })),
+                    Mesh3d(meshes.add(mesh)),
+                ));
             }
         }
     }
 }
 
 pub(crate) fn font_loaded(
-    mut events: EventReader<AssetEvent<TextMeshFont>>,
+    mut events: MessageReader<AssetEvent<TextMeshFont>>,
     mut query: Query<(&mut TextMeshState, &TextMesh)>,
 ) {
     // FIXME: this event system is triggered any time a new text is rendered
@@ -141,5 +140,5 @@ fn apply_mesh(mesh_data: MeshData, mesh: &mut Mesh) {
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, mesh_data.vertices);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, mesh_data.normals);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, mesh_data.uvs);
-    mesh.set_indices(Some(Indices::U32(mesh_data.indices)));
+    mesh.insert_indices(Indices::U32(mesh_data.indices));
 }

@@ -10,13 +10,13 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-ttf2mesh = "0.2.0"
+ttf2mesh = { path = "../ttf2mesh-rs" }
 bitflags = "2.1"
 anyhow = "1.0"
 glyph_brush_layout = "0.2.3"
 
 [dependencies.bevy]
-version = "0.12.0"
+path = "../bevy"
 default-features = false
 features = ["bevy_render", "bevy_text", "bevy_pbr", "bevy_asset", "bevy_sprite"]
 
@@ -24,7 +24,7 @@ features = ["bevy_render", "bevy_text", "bevy_pbr", "bevy_asset", "bevy_sprite"]
 rand = "0.8.4"
 
 [dev-dependencies.bevy]
-version = "0.12.0"
+path = "../bevy"
 default-features = false
 features = [
   "bevy_winit",
@@ -40,3 +40,5 @@ features = [
 [features]
 default = []
 unstable = []
+
+[workspace]
