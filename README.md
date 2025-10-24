@@ -26,16 +26,30 @@ Consider this as a preview of the plugin for gathering feedback about the API:
 
 ## Bevy versions support table
 
-| bevy | bevy_text_mesh |
-| ---- | -------------- |
-| 0.12 | 0.9.0          |
-| 0.11 | 0.7.0          |
-| 0.10 | 0.6.0          |
-| 0.9  | 0.5.0          |
-| 0.8  | 0.4.0          |
-| 0.7  | 0.2.0          |
-| 0.6  | 0.1.0          |
-| 0.5  | 0.0.2          |
+| bevy        | bevy_text_mesh |
+| ----------- | -------------- |
+| 0.18 (dev)  | main branch    |
+| 0.12        | 0.9.0          |
+| 0.11        | 0.7.0          |
+| 0.10        | 0.6.0          |
+| 0.9         | 0.5.0          |
+| 0.8         | 0.4.0          |
+| 0.7         | 0.2.0          |
+| 0.6         | 0.1.0          |
+| 0.5         | 0.0.2          |
+
+## Bevy 0.18 Migration
+
+This fork has been migrated to support Bevy 0.18-dev with the following major API changes:
+
+- **Asset System**: `AssetLoader::load()` changed to `async fn` instead of returning `BoxedFuture`
+- **Component System**: Replaced deprecated `PbrBundle` with `(MeshMaterial3d, Mesh3d)` component tuple
+- **Handle Components**: `Handle<T>` is no longer a Component; use `MeshMaterial3d<T>` and `Mesh3d` wrapper types
+- **Mesh API**: Updated `Mesh::new()` signature and `set_indices()` → `insert_indices()`
+- **Event System**: `EventReader` renamed to `MessageReader`
+- **Dependencies**: Updated all Bevy dependencies to 0.18.0-dev
+
+The crate compiles cleanly with Bevy 0.18-dev with no errors or warnings.
 
 ## Usage
 
