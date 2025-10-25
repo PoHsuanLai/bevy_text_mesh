@@ -11,8 +11,6 @@ A bevy 3D text mesh generator plugin for displaying text in 3D scenes
 
 ![Example](docs/highlight.webp)
 
-The text mesh is generated at runtime from runtime-tessellated (and cached) TrueType font glyphs. Tessellation of glyphs is done with C-based [github.com/fetisov/ttf2mesh](https://github.com/fetisov/ttf2mesh/) library that is being interfaced through Rust-based FFI API (see [ttf2glyph-rs](https://crates.io/crates/ttf2mesh)).
-
 ## Known limitations
 
 Consider this as a preview of the plugin for gathering feedback about the API:
