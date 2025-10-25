@@ -1,7 +1,7 @@
 use bevy::prelude::*;
-use ttf2mesh::{TTFFile, Value};
 
 use crate::{
+    font_loader::TextMeshFont,
     mesh_cache::{CacheKey, MeshCache},
     text_mesh::{FontStyle, TextMesh},
 };
@@ -20,7 +20,7 @@ pub(crate) struct MeshData {
 // from the existing mesh
 pub(crate) fn generate_text_mesh(
     text_mesh: &TextMesh,
-    font: &mut TTFFile,
+    text_mesh_font: &TextMeshFont,
     cache: Option<&mut MeshCache>,
 ) -> MeshData {
     trace!("Generate text mesh: {:?}", text_mesh.text);
@@ -79,20 +79,29 @@ pub(crate) fn generate_text_mesh(
         let mesh = match cache.meshes.get(&key) {
             Some(mesh) => mesh,
             None => {
-                let glyph = font.glyph_from_char(char);
-
-                let mut glyph = match glyph {
-                    Ok(glyph) => glyph,
-                    Err(_) => {
-                        println!("Glyph {} not found", char);
-                        font.glyph_from_char('?').unwrap()
-                    }
-                };
+                // Get font from TextMeshFont
+                let font = text_mesh_font.get_font().expect("Failed to load font");
 
                 let mesh = match &text_mesh.size.depth {
-                    Some(unit) => glyph
-                        .to_3d_mesh(text_mesh.style.mesh_quality, unit.as_scalar().unwrap())
-                        .unwrap(),
+                    Some(unit) => {
+                        let depth = unit.as_scalar().unwrap();
+                        match font.glyph_to_mesh_3d(char, text_mesh.style.mesh_quality, depth) {
+                            Ok(mesh) => mesh,
+                            Err(e) => {
+                                // Try to generate '?' as fallback
+                                eprintln!("WARNING: Failed to convert glyph '{}' to 3D mesh: {:?}", char, e);
+                                eprintln!("  Font: {:?}", text_mesh.style.font);
+                                eprintln!("  Quality: {:?}", text_mesh.style.mesh_quality);
+                                eprintln!("  Depth: {}", depth);
+                                eprintln!("  Trying fallback to '?' character...");
+
+                                match font.glyph_to_mesh_3d('?', text_mesh.style.mesh_quality, depth) {
+                                    Ok(mesh) => mesh,
+                                    Err(_) => panic!("Failed to generate 3D mesh for character '{}' and fallback '?'", char),
+                                }
+                            }
+                        }
+                    },
                     None => todo!("2d glyphs are not implemented yet. Define depth"),
                 };
 
@@ -164,7 +173,7 @@ pub(crate) fn generate_text_mesh(
         }
         // 30 microsecs
 
-        vertices_offset += mesh.vertices_len();
+        vertices_offset += mesh.vertex_count();
 
         scaled_offset.x += (xmax - xmin) * scalar + spacing.x;
 
@@ -192,7 +201,7 @@ pub(crate) fn generate_text_mesh(
 mod tests {
     use crate::{
         mesh_data_generator::generate_text_mesh, text_mesh::TextMesh, SizeUnit, TextMeshSize,
-        TextMeshStyle,
+        TextMeshStyle, font_loader::TextMeshFont,
     };
 
     use super::*;
@@ -204,7 +213,9 @@ mod tests {
     #[test]
     fn test_generate_mesh() {
         let mut mesh_cache = MeshCache::default();
-        let mut font = ttf2mesh::TTFFile::from_buffer_vec(get_font_bytes()).unwrap();
+        let font = TextMeshFont {
+            bytes: get_font_bytes(),
+        };
 
         let text_mesh = TextMesh {
             text: "hello world!".to_string(),
@@ -220,7 +231,7 @@ mod tests {
             ..Default::default()
         };
 
-        let _ = generate_text_mesh(&text_mesh, &mut font, Some(&mut mesh_cache));
+        let _ = generate_text_mesh(&text_mesh, &font, Some(&mut mesh_cache));
     }
 }
 
@@ -234,23 +245,27 @@ mod bench {
     #[bench]
     fn bench_get_glyph_cached(b: &mut Bencher) {
         let mut mesh_cache = MeshCache::default();
-        let mut font = ttf2mesh::TTFFile::from_buffer_vec(tests::get_font_bytes()).unwrap();
+        let font = TextMeshFont {
+            bytes: tests::get_font_bytes(),
+        };
 
         let text_mesh = TextMesh::new_no_font("hello world!".to_string());
-        let _ = generate_text_mesh(&text_mesh, &mut font, Some(&mut mesh_cache));
+        let _ = generate_text_mesh(&text_mesh, &font, Some(&mut mesh_cache));
 
         b.iter(|| {
-            let _ = generate_text_mesh(&text_mesh, &mut font, Some(&mut mesh_cache));
+            let _ = generate_text_mesh(&text_mesh, &font, Some(&mut mesh_cache));
         });
     }
 
     #[bench]
     fn bench_get_glyph_no_cache(b: &mut Bencher) {
-        let mut font = ttf2mesh::TTFFile::from_buffer_vec(tests::get_font_bytes()).unwrap();
+        let font = TextMeshFont {
+            bytes: tests::get_font_bytes(),
+        };
         let text_mesh = TextMesh::new_no_font("hello world!".to_string());
 
         b.iter(|| {
-            let _ = generate_text_mesh(&text_mesh, &mut font, None);
+            let _ = generate_text_mesh(&text_mesh, &font, None);
         });
     }
 }

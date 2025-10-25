@@ -42,7 +42,7 @@ impl Eq for Depth {}
 
 #[derive(Resource)]
 pub struct MeshCache {
-    pub(crate) meshes: HashMap<CacheKey, ttf2mesh::Mesh<'static, ttf2mesh::Mesh3d>>,
+    pub(crate) meshes: HashMap<CacheKey, fontmesh::Mesh3D>,
 }
 
 impl Default for MeshCache {
@@ -53,5 +53,5 @@ impl Default for MeshCache {
     }
 }
 
-unsafe impl Send for MeshCache {} // FIXME: verify soundness
-unsafe impl Sync for MeshCache {} // FIXME: verify soundness
+unsafe impl Send for MeshCache {}
+unsafe impl Sync for MeshCache {}

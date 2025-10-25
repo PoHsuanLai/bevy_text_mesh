@@ -40,10 +40,9 @@ impl AssetLoader for FontLoader {
                 .await
                 .expect("unable to read font");
 
-            // ttf fontloading
+            // fontmesh fontloading
             let font = TextMeshFont {
-                ttf_font: ttf2mesh::TTFFile::from_buffer_vec(bytes.clone())
-                    .expect("unable to decode asset"),
+                bytes: bytes.clone(),
             };
 
             load_context.add_labeled_asset("mesh".into(), font);
@@ -62,7 +61,13 @@ impl AssetLoader for FontLoader {
 #[derive(TypeUuid, TypePath, Asset)]
 #[uuid = "5415ac03-d009-471e-89ab-dc0d4e31a8c4"]
 pub struct TextMeshFont {
-    pub(crate) ttf_font: ttf2mesh::TTFFile,
+    pub(crate) bytes: Vec<u8>,
+}
+
+impl TextMeshFont {
+    pub(crate) fn get_font(&self) -> Result<fontmesh::Font<'_>, fontmesh::FontMeshError> {
+        fontmesh::Font::from_bytes(&self.bytes)
+    }
 }
 
 impl std::fmt::Debug for TextMeshFont {
@@ -71,5 +76,5 @@ impl std::fmt::Debug for TextMeshFont {
     }
 }
 
-unsafe impl Sync for TextMeshFont {} // FIXME - verify the soundness
-unsafe impl Send for TextMeshFont {} // FIXME - verify the soundness
+unsafe impl Sync for TextMeshFont {}
+unsafe impl Send for TextMeshFont {}

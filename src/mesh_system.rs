@@ -57,7 +57,7 @@ pub(crate) fn text_mesh(
             }
         };
 
-        let ttf2_mesh = generate_text_mesh(&text_mesh, &mut font.ttf_font, Some(&mut cache));
+        let ttf2_mesh = generate_text_mesh(&text_mesh, font, Some(&mut cache));
 
         match mesh {
             Some(mesh) => {

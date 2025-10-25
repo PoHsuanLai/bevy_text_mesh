@@ -1,3 +1,7 @@
+[workspace]
+# NOTE: Remove this [workspace] declaration before submitting PR
+# It's only needed for local development to avoid parent workspace conflicts
+
 [package]
 name = "bevy_text_mesh"
 version = "0.9.0"
@@ -10,7 +14,7 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-ttf2mesh = "0.2.0"
+fontmesh = "0.2.0"
 bitflags = "2.1"
 anyhow = "1.0"
 glyph_brush_layout = "0.2.3"
