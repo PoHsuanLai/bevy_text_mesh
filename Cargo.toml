@@ -1,7 +1,3 @@
-[workspace]
-# NOTE: Remove this [workspace] declaration before submitting PR
-# It's only needed for local development to avoid parent workspace conflicts
-
 [package]
 name = "bevy_text_mesh"
 version = "0.9.0"
