@@ -11,7 +11,7 @@ A bevy 3D text mesh generator plugin for displaying text in 3D scenes
 
 ![Example](docs/highlight.webp)
 
-The text mesh is generated at runtime from runtime-tessellated (and cached) TrueType font glyphs. Tessellation of glyphs is done with C-based [github.com/fetisov/ttf2mesh](https://github.com/fetisov/ttf2mesh/) library that is being interfaced through Rust-based FFI API (see [ttf2glyph-rs](https://crates.io/crates/ttf2mesh)).
+The text mesh is generated at runtime from runtime-tessellated (and cached) TrueType font glyphs. Tessellation of glyphs is done with pure Rust [fontmesh](https://crates.io/crates/fontmesh) library, which provides cross-platform font-to-mesh conversion without C dependencies.
 
 ## Known limitations
 
@@ -22,7 +22,6 @@ Consider this as a preview of the plugin for gathering feedback about the API:
 - Text color update is not implemented yet
 - Spacing of characters are incorrect
 - Mesh cache purging is not implemented - this implementation will leak memory (see [#2](https://github.com/blaind/bevy_text_mesh/issues/2))
-- WASM builds are not supported (see [#11](https://github.com/blaind/bevy_text_mesh/issues/11))
 
 ## Bevy versions support table
 
@@ -38,26 +37,29 @@ Consider this as a preview of the plugin for gathering feedback about the API:
 | 0.6         | 0.1.0          |
 | 0.5         | 0.0.2          |
 
-## Bevy 0.18 Migration
+## Bevy 0.18 Migration & fontmesh
 
-This fork has been migrated to support Bevy 0.18-dev with the following major API changes:
+This fork has been migrated to support Bevy 0.18-dev with significant improvements:
+
+### Pure Rust Implementation
+
+- **Replaced C-based ttf2mesh** with pure Rust [fontmesh](https://crates.io/crates/fontmesh) library
+- **WASM support** - No C compiler required, enables WebAssembly builds
+- **Cross-platform** - Simplified build process, works on all platforms without system dependencies
+- **Improved portability** - Pure Rust implementation using ttf-parser and lyon
+
+### Bevy 0.18 API Updates
 
 - **Asset System**: `AssetLoader::load()` changed to `async fn` instead of returning `BoxedFuture`
 - **Component System**: Replaced deprecated `PbrBundle` with `(MeshMaterial3d, Mesh3d)` component tuple
 - **Handle Components**: `Handle<T>` is no longer a Component; use `MeshMaterial3d<T>` and `Mesh3d` wrapper types
 - **Mesh API**: Updated `Mesh::new()` signature and `set_indices()` → `insert_indices()`
 - **Event System**: `EventReader` renamed to `MessageReader`
-- **Dependencies**: Updated all Bevy dependencies to 0.18.0-dev
+- **Examples**: Fixed 2d_text example by adding missing `bevy_sprite_render` and `default_font` features
 
 The crate compiles cleanly with Bevy 0.18-dev with no errors or warnings.
 
 ## Usage
-
-## Prequisites
-
-Prequisites (for compiling [ttf2mesh-rs](https://crates.io/crates/ttf2mesh)):
-
-    apt-get install build-essential patch
 
 ## Running the examples
 

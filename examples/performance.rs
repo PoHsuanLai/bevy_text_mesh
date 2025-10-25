@@ -2,11 +2,10 @@ use std::time::Duration;
 
 use bevy::{
     diagnostic::{
-        Diagnostic, DiagnosticId, Diagnostics, DiagnosticsStore, FrameTimeDiagnosticsPlugin,
+        Diagnostic, DiagnosticPath, Diagnostics, DiagnosticsStore, FrameTimeDiagnosticsPlugin,
         LogDiagnosticsPlugin, RegisterDiagnostic,
     },
     prelude::*,
-    render::camera::Camera,
 };
 use bevy_text_mesh::prelude::*;
 
@@ -28,14 +27,13 @@ const INITIAL_WAIT_MS: u64 = 500;
 
 fn main() {
     App::new()
-        .insert_resource(Msaa::Sample4)
         .add_plugins((
             DefaultPlugins,
             TextMeshPlugin,
             FrameTimeDiagnosticsPlugin::default(),
             LogDiagnosticsPlugin::default(),
         ))
-        .register_diagnostic(Diagnostic::new(TEXT_MESH_UPDATES, "text_mesh_updates", 20))
+        .register_diagnostic(Diagnostic::new(TEXT_MESH_UPDATES.clone()).with_max_history_length(20))
         .add_systems(Startup, (setup, setup_text_mesh))
         .add_systems(Update, (spawn_meshes, update_text_mesh, rotate_camera))
         .add_systems(PostUpdate, update_frame_rate)
@@ -66,8 +64,7 @@ struct FPS;
 #[derive(Component)]
 struct TextCount;
 
-pub const TEXT_MESH_UPDATES: DiagnosticId =
-    DiagnosticId::from_u128(1082410928401928501928509128509125);
+const TEXT_MESH_UPDATES: DiagnosticPath = DiagnosticPath::const_new("text_mesh_updates");
 
 fn setup_text_mesh(
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -91,7 +88,7 @@ fn setup_text_mesh(
                 text: String::from("FPS"),
                 style: TextMeshStyle {
                     font: state.font.clone(),
-                    color: Color::rgb(0., 1., 0.),
+                    color: Color::srgb(0., 1., 0.),
                     font_size: SizeUnit::NonStandard(48.),
                     ..Default::default()
                 },
@@ -109,7 +106,7 @@ fn setup_text_mesh(
                 style: TextMeshStyle {
                     font: state.font.clone(),
                     font_size: SizeUnit::NonStandard(18.),
-                    color: Color::rgb(1., 1., 1.),
+                    color: Color::srgb(1., 1., 1.),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -178,7 +175,7 @@ fn spawn_meshes(
                 ..Default::default()
             })
             .insert(EngineTime)
-            .insert(state.material.clone());
+            .insert(MeshMaterial3d(state.material.clone()));
 
         state.text_count += 1;
     }
@@ -194,7 +191,7 @@ fn update_text_mesh(
     let mut update_count = 0;
     if timer.text_update_timer.tick(time.delta()).just_finished() {
         for mut text_mesh in text_meshes.iter_mut() {
-            let updated_text = String::from(format!("Time = {:.3}", time.elapsed_seconds_f64()));
+            let updated_text = String::from(format!("Time = {:.3}", time.elapsed_secs_f64()));
 
             if text_mesh.text != updated_text {
                 text_mesh.text = updated_text;
@@ -204,12 +201,12 @@ fn update_text_mesh(
     }
 
     state.text_update_count += update_count;
-    diagnostics.add_measurement(TEXT_MESH_UPDATES, || state.text_update_count as f64);
+    diagnostics.add_measurement(&TEXT_MESH_UPDATES, || state.text_update_count as f64);
 }
 
 fn rotate_camera(mut camera: Query<&mut Transform, With<Camera>>, time: Res<Time>) {
     for mut camera in camera.iter_mut() {
-        let angle = time.elapsed_seconds_f64() as f32 / 2. + 1.55 * std::f32::consts::PI;
+        let angle = time.elapsed_secs_f64() as f32 / 2. + 1.55 * std::f32::consts::PI;
 
         let distance = 6.5;
 
@@ -235,11 +232,11 @@ fn update_frame_rate(
     for (text_mesh_entity, mut text_mesh, fps) in fps_text.iter_mut() {
         if timer.fps_update_timer.tick(time.delta()).just_finished() {
             if fps.is_some() {
-                let fps = diagnostics
-                    .get_measurement(FrameTimeDiagnosticsPlugin::FPS)
-                    .unwrap();
-
-                text_mesh.text = format!("FPS={}", fps.value.round() as usize);
+                if let Some(fps_diagnostic) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
+                    if let Some(fps_value) = fps_diagnostic.smoothed() {
+                        text_mesh.text = format!("FPS={}", fps_value.round() as usize);
+                    }
+                }
             } else {
                 text_mesh.text = format!("{} text items", state.text_count);
             }
@@ -260,17 +257,24 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Plane::from_size(5.0))),
-        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-        ..Default::default()
-    });
-    commands.spawn(PointLightBundle {
-        transform: Transform::from_xyz(4.0, 8.0, 4.0),
-        ..Default::default()
-    });
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..Default::default()
-    });
+    // Plane
+    commands.spawn((
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
+        MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
+    ));
+
+    // Point light
+    commands.spawn((
+        PointLight {
+            intensity: 1_500_000.0,
+            ..default()
+        },
+        Transform::from_xyz(4.0, 8.0, 4.0),
+    ));
+
+    // Camera
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+    ));
 }

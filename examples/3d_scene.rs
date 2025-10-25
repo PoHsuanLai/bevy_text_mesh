@@ -1,11 +1,10 @@
 use std::time::Duration;
 
-use bevy::{prelude::*, render::camera::Camera};
+use bevy::prelude::*;
 use bevy_text_mesh::prelude::*;
 
 fn main() {
     App::new()
-        .insert_resource(Msaa::Sample4)
         .add_plugins((DefaultPlugins, TextMeshPlugin))
         .add_systems(Startup, (setup, setup_text_mesh.after(setup)))
         .add_systems(Update, (update_text_mesh, rotate_camera))
@@ -21,7 +20,7 @@ fn setup_text_mesh(mut commands: Commands, asset_server: Res<AssetServer>) {
             style: TextMeshStyle {
                 font: font.clone(),
                 font_size: SizeUnit::NonStandard(9.),
-                color: Color::rgb(0.0, 0.0, 0.0),
+                color: Color::srgb(0.0, 0.0, 0.0),
                 ..Default::default()
             },
             size: TextMeshSize {
@@ -43,7 +42,7 @@ fn setup_text_mesh(mut commands: Commands, asset_server: Res<AssetServer>) {
                 style: TextMeshStyle {
                     font: font.clone(),
                     font_size: SizeUnit::NonStandard(36.),
-                    color: Color::rgb(0.0, 1.0, 0.0),
+                    color: Color::srgb(0.0, 1.0, 0.0),
                     mesh_quality: Quality::Custom(128),
                     ..Default::default()
                 },
@@ -77,7 +76,7 @@ fn update_text_mesh(
 ) {
     if timer.timer.tick(time.delta()).just_finished() {
         for mut text_mesh in text_meshes.iter_mut() {
-            let updated_text = String::from(format!("Time = {:.3}", time.elapsed_seconds_f64()));
+            let updated_text = String::from(format!("Time = {:.3}", time.elapsed_secs_f64()));
 
             if text_mesh.text != updated_text {
                 text_mesh.text = updated_text;
@@ -88,7 +87,7 @@ fn update_text_mesh(
 
 fn rotate_camera(mut camera: Query<&mut Transform, With<Camera>>, time: Res<Time>) {
     for mut camera in camera.iter_mut() {
-        let angle = time.elapsed_seconds_f64() as f32 / 2. + 1.55 * std::f32::consts::PI;
+        let angle = time.elapsed_secs_f64() as f32 / 2. + 1.55 * std::f32::consts::PI;
 
         let distance = 3.5;
 
@@ -108,23 +107,31 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Plane::from_size(5.0))),
-        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-        ..Default::default()
-    });
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-        transform: Transform::from_xyz(0.0, 0.5, 0.0),
-        ..Default::default()
-    });
-    commands.spawn(PointLightBundle {
-        transform: Transform::from_xyz(4.0, 8.0, 4.0),
-        ..Default::default()
-    });
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..Default::default()
-    });
+    // Plane
+    commands.spawn((
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(5.0, 5.0))),
+        MeshMaterial3d(materials.add(Color::srgb(0.3, 0.5, 0.3))),
+    ));
+
+    // Cube
+    commands.spawn((
+        Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
+        MeshMaterial3d(materials.add(Color::srgb(0.8, 0.7, 0.6))),
+        Transform::from_xyz(0.0, 0.5, 0.0),
+    ));
+
+    // Point light
+    commands.spawn((
+        PointLight {
+            intensity: 1_500_000.0,
+            ..default()
+        },
+        Transform::from_xyz(4.0, 8.0, 4.0),
+    ));
+
+    // Camera
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(-2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+    ));
 }

@@ -2,6 +2,32 @@
 
 [git_tag_comparison]: https://github.com/blaind/bevy_text_mesh/compare/v0.9.0...main
 
+## Unreleased
+
+### Changed (Breaking)
+
+- **Replaced C-based ttf2mesh with pure Rust fontmesh library**
+  - Removes C compiler build prerequisites
+  - Enables WASM platform support (resolves #11)
+  - Improves cross-platform compatibility
+  - Uses [fontmesh 0.2.0](https://crates.io/crates/fontmesh) for font-to-mesh conversion
+- **Migrated to Bevy 0.18-dev** (from Bevy 0.12)
+  - Updated asset loading to async API
+  - Replaced `PbrBundle` with component tuples `(MeshMaterial3d, Mesh3d)`
+  - Updated mesh API (`set_indices` → `insert_indices`)
+  - Updated event system (`EventReader` → `MessageReader`)
+- **Updated Bevy dependency** from path to git (github.com/bevyengine/bevy)
+  - Added critical rendering features: `bevy_sprite_render`, `default_font`
+
+### Fixed
+
+- Fixed 2d_text example by adding missing Bevy features for sprite rendering
+
+### Removed
+
+- Removed requirement for `apt-get install build-essential patch` on Linux
+- Removed ttf2mesh C library dependency
+
 ## Version 0.9.0 (2023-11-21)
 
 [Compare changelog](https://github.com/blaind/bevy_text_mesh/compare/v0.8.0...v0.9.0)
